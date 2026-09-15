@@ -27,3 +27,6 @@ Thumbs.db
 .claude/
 .windsurf/
 skills-lock.json
+
+# Generated Prisma Client
+backend/src/generated/

@@ -7,19 +7,108 @@ datasource db {
   provider = "sqlite"
 }
 
+enum UserRole {
+  ADMIN
+  CASHIER
+}
+
+enum StockMovementType {
+  PURCHASE
+  SALE
+  ADJUSTMENT_IN
+  ADJUSTMENT_OUT
+  DAMAGE
+  RETURN
+}
+
 model User {
   id           Int      @id @default(autoincrement())
   firstName    String
   lastName     String
   username     String   @unique
   passwordHash String
-  role         Role     @default(CASHIER)
+  role         UserRole @default(CASHIER)
   isActive     Boolean  @default(true)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+
+  stockMovements StockMovement[]
+  sales          Sale[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
-enum Role {
-  ADMIN
-  CASHIER
+model Category {
+  id       Int     @id @default(autoincrement())
+  name     String  @unique
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  products Product[]
+}
+
+model Product {
+  id           Int     @id @default(autoincrement())
+  name         String
+  sku          String  @unique
+  brand        String?
+  unit         String
+  costPrice    Float
+  sellingPrice Float
+  quantity     Int     @default(0)
+  reorderLevel Int     @default(5)
+  isActive     Boolean @default(true)
+  categoryId   Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  category       Category        @relation(fields: [categoryId], references: [id])
+  stockMovements StockMovement[]
+  saleItems      SaleItem[]
+}
+
+model StockMovement {
+  id        Int               @id @default(autoincrement())
+  type      StockMovementType
+  quantity  Int
+  reference String?
+  note      String?
+
+  productId Int
+  product   Product @relation(fields: [productId], references: [id])
+
+  userId Int
+  user   User @relation(fields: [userId], references: [id])
+
+  createdAt DateTime @default(now())
+}
+
+model Sale {
+  id          Int    @id @default(autoincrement())
+  totalAmount Float
+  reference   String @unique
+
+  userId Int
+  user   User @relation(fields: [userId], references: [id])
+
+  items SaleItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model SaleItem {
+  id        Int   @id @default(autoincrement())
+  quantity  Int
+  unitPrice Float
+  costPrice Float
+  subtotal  Float
+
+  saleId Int
+  sale   Sale @relation(fields: [saleId], references: [id])
+
+  productId Int
+  product   Product @relation(fields: [productId], references: [id])
 }
