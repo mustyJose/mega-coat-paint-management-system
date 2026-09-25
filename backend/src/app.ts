@@ -3,6 +3,7 @@ import express, {
   Request,
   Response
 } from "express";
+import cors from "cors";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 
@@ -17,6 +18,12 @@ import userRoutes from "./routes/user.routes.js";
 const app = express();
 
 app.disable("x-powered-by");
+
+app.use(
+  cors({
+    origin: "http://localhost:5173"
+  })
+);
 
 app.use(helmet());
 
@@ -63,13 +70,11 @@ app.get("/", (_req: Request, res: Response) => {
   });
 });
 
-app.use(
-  (_req: Request, res: Response): void => {
-    res.status(404).json({
-      message: "Route not found"
-    });
-  }
-);
+app.use((_req: Request, res: Response): void => {
+  res.status(404).json({
+    message: "Route not found"
+  });
+});
 
 app.use(
   (

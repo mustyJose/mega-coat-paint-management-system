@@ -1,51 +1,80 @@
 import { prisma } from "../config/database.js";
 import { StockMovementType } from "../generated/prisma/enums.js";
 
-interface StockMovementData {
+interface StockAdjustmentData {
   productId: number;
+  quantity: number;
   type: StockMovementType;
-  quantity: number;
   reference?: string;
   note?: string;
   userId: number;
 }
 
-interface ReceiveStockData {
-  productId: number;
-  quantity: number;
-  reference?: string;
-  note?: string;
-  userId: number;
-}
-
-const stockIncreasingTypes: StockMovementType[] = [
+const stockInTypes: StockMovementType[] = [
   StockMovementType.PURCHASE,
-  StockMovementType.RETURN,
-  StockMovementType.ADJUSTMENT_IN
+  StockMovementType.ADJUSTMENT_IN,
+  StockMovementType.RETURN
 ];
 
-const stockDecreasingTypes: StockMovementType[] = [
-  StockMovementType.SALE,
+const stockOutTypes: StockMovementType[] = [
   StockMovementType.ADJUSTMENT_OUT,
   StockMovementType.DAMAGE
 ];
 
-export const createStockMovement = async (
-  data: StockMovementData
+export const getInventory = async () => {
+  return prisma.product.findMany({
+    where: {
+      isActive: true
+    },
+    include: {
+      category: true
+    },
+    orderBy: {
+      name: "asc"
+    }
+  });
+};
+
+export const getStockMovements = async () => {
+  return prisma.stockMovement.findMany({
+    include: {
+      product: {
+        select: {
+          id: true,
+          name: true,
+          sku: true,
+          unit: true
+        }
+      },
+      user: {
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          username: true,
+          role: true
+        }
+      }
+    },
+    orderBy: {
+      createdAt: "desc"
+    }
+  });
+};
+
+export const createStockAdjustment = async (
+  data: StockAdjustmentData
 ) => {
   if (!Number.isInteger(data.productId) || data.productId <= 0) {
     throw new Error("Invalid product ID");
   }
 
   if (!Number.isInteger(data.quantity) || data.quantity <= 0) {
-    throw new Error("Quantity must be greater than zero");
+    throw new Error("Stock quantity must be greater than zero");
   }
 
-  const isIncreasing = stockIncreasingTypes.includes(data.type);
-  const isDecreasing = stockDecreasingTypes.includes(data.type);
-
-  if (!isIncreasing && !isDecreasing) {
-    throw new Error("Invalid stock movement type");
+  if (!stockInTypes.includes(data.type) && !stockOutTypes.includes(data.type)) {
+    throw new Error("Invalid stock adjustment type");
   }
 
   return prisma.$transaction(async (tx) => {
@@ -63,10 +92,10 @@ export const createStockMovement = async (
       throw new Error("Product is inactive");
     }
 
-    let updatedProduct;
+    const isStockIn = stockInTypes.includes(data.type);
 
-    if (isIncreasing) {
-      updatedProduct = await tx.product.update({
+    if (isStockIn) {
+      await tx.product.update({
         where: {
           id: data.productId
         },
@@ -92,32 +121,44 @@ export const createStockMovement = async (
         }
       });
 
-      if (stockUpdate.count !== 1) {
-        throw new Error("Insufficient stock");
+      if (stockUpdate.count === 0) {
+        throw new Error(
+          `Insufficient stock for ${product.name}. Current stock is ${product.quantity} ${product.unit}.`
+        );
       }
+    }
 
-      updatedProduct = await tx.product.findUnique({
-        where: {
-          id: data.productId
-        }
-      });
-
-      if (!updatedProduct) {
-        throw new Error("Product not found");
+    const updatedProduct = await tx.product.findUnique({
+      where: {
+        id: data.productId
+      },
+      include: {
+        category: true
       }
+    });
+
+    if (!updatedProduct) {
+      throw new Error("Product not found");
     }
 
     const movement = await tx.stockMovement.create({
       data: {
         type: data.type,
         quantity: data.quantity,
-        reference: data.reference,
-        note: data.note,
+        reference: data.reference?.trim() || null,
+        note: data.note?.trim() || null,
         productId: data.productId,
         userId: data.userId
       },
       include: {
-        product: true,
+        product: {
+          select: {
+            id: true,
+            name: true,
+            sku: true,
+            unit: true
+          }
+        },
         user: {
           select: {
             id: true,
@@ -131,129 +172,8 @@ export const createStockMovement = async (
     });
 
     return {
-      movement,
-      product: updatedProduct
+      product: updatedProduct,
+      movement
     };
-  });
-};
-
-export const receiveStock = async (
-  data: ReceiveStockData
-) => {
-  if (!Number.isInteger(data.productId) || data.productId <= 0) {
-    throw new Error("Invalid product ID");
-  }
-
-  if (!Number.isInteger(data.quantity) || data.quantity <= 0) {
-    throw new Error("Quantity must be greater than zero");
-  }
-
-  return prisma.$transaction(async (tx) => {
-    const product = await tx.product.findUnique({
-      where: {
-        id: data.productId
-      }
-    });
-
-    if (!product) {
-      throw new Error("Product not found");
-    }
-
-    if (!product.isActive) {
-      throw new Error("Product is inactive");
-    }
-
-    const updatedProduct = await tx.product.update({
-      where: {
-        id: data.productId
-      },
-      data: {
-        quantity: {
-          increment: data.quantity
-        }
-      }
-    });
-
-    const movement = await tx.stockMovement.create({
-      data: {
-        type: StockMovementType.PURCHASE,
-        quantity: data.quantity,
-        reference: data.reference,
-        note: data.note,
-        productId: data.productId,
-        userId: data.userId
-      },
-      include: {
-        product: true,
-        user: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            username: true,
-            role: true
-          }
-        }
-      }
-    });
-
-    return {
-      movement,
-      product: updatedProduct
-    };
-  });
-};
-
-export const getStockMovements = async () => {
-  return prisma.stockMovement.findMany({
-    include: {
-      product: true,
-      user: {
-        select: {
-          id: true,
-          firstName: true,
-          lastName: true,
-          username: true,
-          role: true
-        }
-      }
-    },
-    orderBy: {
-      createdAt: "desc"
-    }
-  });
-};
-
-export const getProductStockMovements = async (
-  productId: number
-) => {
-  const product = await prisma.product.findUnique({
-    where: {
-      id: productId
-    }
-  });
-
-  if (!product) {
-    throw new Error("Product not found");
-  }
-
-  return prisma.stockMovement.findMany({
-    where: {
-      productId
-    },
-    include: {
-      user: {
-        select: {
-          id: true,
-          firstName: true,
-          lastName: true,
-          username: true,
-          role: true
-        }
-      }
-    },
-    orderBy: {
-      createdAt: "desc"
-    }
   });
 };

@@ -10,6 +10,7 @@ interface CreateProductData {
   quantity?: number;
   reorderLevel?: number;
   categoryId: number;
+  userId: number;
 }
 
 interface UpdateProductData {
@@ -23,7 +24,9 @@ interface UpdateProductData {
   categoryId?: number;
 }
 
-export const createProduct = async (data: CreateProductData) => {
+export const createProduct = async (
+  data: CreateProductData
+) => {
   const existingProduct = await prisma.product.findUnique({
     where: {
       sku: data.sku
@@ -48,21 +51,40 @@ export const createProduct = async (data: CreateProductData) => {
     throw new Error("Category is inactive");
   }
 
-  return prisma.product.create({
-    data: {
-      name: data.name,
-      sku: data.sku,
-      brand: data.brand,
-      unit: data.unit,
-      costPrice: data.costPrice,
-      sellingPrice: data.sellingPrice,
-      quantity: data.quantity ?? 0,
-      reorderLevel: data.reorderLevel ?? 5,
-      categoryId: data.categoryId
-    },
-    include: {
-      category: true
+  const openingQuantity = data.quantity ?? 0;
+
+  return prisma.$transaction(async (tx) => {
+    const product = await tx.product.create({
+      data: {
+        name: data.name,
+        sku: data.sku,
+        brand: data.brand,
+        unit: data.unit,
+        costPrice: data.costPrice,
+        sellingPrice: data.sellingPrice,
+        quantity: openingQuantity,
+        reorderLevel: data.reorderLevel ?? 5,
+        categoryId: data.categoryId
+      },
+      include: {
+        category: true
+      }
+    });
+
+    if (openingQuantity > 0) {
+      await tx.stockMovement.create({
+        data: {
+          type: "ADJUSTMENT_IN",
+          quantity: openingQuantity,
+          reference: `OPENING-${product.sku}`,
+          note: "Opening stock",
+          productId: product.id,
+          userId: data.userId
+        }
+      });
     }
+
+    return product;
   });
 };
 
@@ -94,7 +116,7 @@ export const getLowStockProducts = async () => {
   });
 
   return products.filter(
-    (product) => product.quantity <= product.reorderLevel
+    (product) => product.quantity > 0 && product.quantity <= product.reorderLevel
   );
 };
 
