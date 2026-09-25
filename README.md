@@ -1,44 +1,50 @@
 # Mega Coat Paint & Chemical Management System
 
-A full-stack paint store management system built for managing products, categories, inventory, sales, users, and business reports.
+A full-stack paint store management system designed to manage products, categories, inventory, sales, users, and business reporting.
 
 ## Overview
 
-Mega Coat Paint & Chemical Management System is a local business management application designed for paint and chemical stores.
+Mega Coat Paint & Chemical Management System is a local business management application built for paint and chemical stores.
 
-The system provides separate administrative and cashier access, inventory tracking, stock movement management, sales processing, reporting, and store settings.
+The system provides role-based access for administrators and cashiers, product management, inventory tracking, stock movement management, sales processing, reporting, and store configuration.
+
+The application is designed to run locally using SQLite for reliable offline business operations.
 
 ## Features
 
 ### Authentication and Authorization
 
-- Secure JWT-based authentication
+- JWT-based authentication
 - Admin and cashier roles
 - Protected API routes
 - Role-based access control
 - Active and inactive user accounts
 - Password hashing with bcrypt
 - Authentication rate limiting
+- Protected administrative endpoints
 
 ### Dashboard
 
-- Total products
-- Inventory value
-- Low-stock products
-- Sales overview
-- Revenue information
-- Business performance summary
+- Active product overview
+- Active category overview
+- Total stock units
+- Low-stock monitoring
+- Recent sales
+- Inventory status
+- Quick access to sales
 
 ### Product Management
 
 - Create products
-- View products
+- View product details
 - Search products
-- Product details
-- Product categories
 - SKU management
-- Cost and selling prices
-- Reorder levels
+- Brand management
+- Category assignment
+- Unit management
+- Cost price management
+- Selling price management
+- Reorder level configuration
 - Product activation and deactivation
 - Opening stock tracking
 
@@ -46,12 +52,14 @@ The system provides separate administrative and cashier access, inventory tracki
 
 - Create categories
 - View categories
+- Search categories
 - Activate and deactivate categories
 - Assign products to categories
 
 ### Inventory Management
 
 - Current stock levels
+- Stock overview
 - Stock movement history
 - Purchase stock
 - Stock returns
@@ -60,32 +68,40 @@ The system provides separate administrative and cashier access, inventory tracki
 - Stock-out protection
 - Insufficient-stock validation
 - Automatic stock movement records
+- Transaction-based stock updates
 
-### Sales
+### Sales Management
 
 - Create sales
-- Multiple items per sale
+- Multiple products per sale
 - Automatic stock reduction
 - Sale references
-- Sale details
 - Sales history
-- Automatic subtotal and total calculations
-- Cost and profit tracking
+- Sale details
+- Automatic subtotal calculations
+- Automatic total calculations
+- Cost tracking
+- Profit tracking
 
 ### Reports
 
 - Total sales
-- Revenue
-- Cost
-- Profit
+- Total revenue
+- Total cost
+- Total profit
 - Product sales performance
-- Sales history
+- Quantity sold
+- Revenue by product
+- Cost by product
+- Profit by product
+- Date filtering
 
 ### User Management
 
 - Create users
 - Admin and cashier roles
-- Activate and deactivate users
+- Activate users
+- Deactivate users
 - User status management
 - Protected administrative access
 
@@ -98,7 +114,37 @@ The system provides separate administrative and cashier access, inventory tracki
 - Email
 - Currency settings
 
+## Screenshots
+
+### Dashboard
+
+![Mega Coat Dashboard](./screenshots/dashboard.png)
+
+### Products
+
+![Mega Coat Products](./screenshots/products.png)
+
+### Inventory
+
+![Mega Coat Inventory](./screenshots/inventory.png)
+
+### Sales
+
+![Mega Coat Sales](./screenshots/sales.png)
+
+### Reports
+
+![Mega Coat Reports](./screenshots/reports.png)
+
 ## Technology Stack
+
+### Frontend
+
+- React
+- TypeScript
+- Vite
+- React Router
+- Lucide React
 
 ### Backend
 
@@ -113,27 +159,21 @@ The system provides separate administrative and cashier access, inventory tracki
 - CORS
 - Express Rate Limit
 
-### Frontend
-
-- React
-- TypeScript
-- Vite
-- React Router
-- Lucide React
-
 ## Project Structure
 
 ```text
 mega-coat-paint-management-system/
 ├── backend/
 │   ├── prisma/
+│   │   ├── migrations/
+│   │   └── seed.ts
 │   ├── src/
 │   │   ├── config/
 │   │   ├── controllers/
-│   │   ├── generated/
 │   │   ├── middlewares/
 │   │   ├── routes/
-│   │   └── services/
+│   │   ├── services/
+│   │   └── generated/
 │   ├── .env.example
 │   ├── package.json
 │   └── tsconfig.json
@@ -150,6 +190,13 @@ mega-coat-paint-management-system/
 │   ├── package.json
 │   └── vite.config.ts
 │
+├── screenshots/
+│   ├── dashboard.png
+│   ├── products.png
+│   ├── inventory.png
+│   ├── sales.png
+│   └── reports.png
+│
 └── README.md
 Requirements
 
@@ -164,7 +211,7 @@ Clone the repository:
 
 git clone https://github.com/mustyJose/mega-coat-paint-management-system.git
 
-Enter the project:
+Enter the project directory:
 
 cd mega-coat-paint-management-system
 Backend Setup
@@ -194,11 +241,11 @@ Generate Prisma Client:
 
 npx prisma generate
 
-Create the database:
+Create the database and apply migrations:
 
 npx prisma migrate dev
 
-Seed the initial administrator:
+Seed the initial administrator account:
 
 npm run db:seed
 
@@ -206,12 +253,16 @@ Start the backend:
 
 npm run dev
 
-The API runs at:
+The backend API will run at:
 
 http://localhost:3000
 Frontend Setup
 
-Open another terminal and enter the frontend directory:
+Open another terminal and return to the project root:
+
+cd ..
+
+Enter the frontend directory:
 
 cd frontend
 
@@ -223,7 +274,7 @@ Create the environment file:
 
 Copy-Item .env.example .env
 
-The frontend environment should contain:
+Configure the frontend environment:
 
 VITE_API_URL=http://localhost:3000/api
 
@@ -247,7 +298,7 @@ From the frontend directory:
 npm run build
 API
 
-The backend exposes REST API endpoints for:
+The backend provides REST API endpoints for:
 
 /api/auth
 /api/categories
@@ -257,39 +308,9 @@ The backend exposes REST API endpoints for:
 /api/sales
 /api/users
 
-Authentication uses Bearer tokens:
+Authenticated requests use Bearer tokens:
 
 Authorization: Bearer <token>
-Security
-
-The application includes:
-
-JWT authentication
-HS256 algorithm restriction
-Password hashing
-Role-based authorization
-Active-user validation
-Request rate limiting
-Authentication rate limiting
-Helmet security headers
-CORS configuration
-Request body size limits
-Protected administrative endpoints
-Transaction-based stock updates
-Insufficient-stock protection
-Environment-based secrets
-
-Sensitive environment files and the local SQLite database are excluded from version control.
-
-Database
-
-The application uses SQLite for local storage through Prisma ORM.
-
-The local database file is intentionally excluded from Git.
-
-Prisma migrations are stored in:
-
-backend/prisma/migrations/
 User Roles
 Administrator
 
@@ -306,18 +327,48 @@ Cashier
 
 Cashiers can:
 
-View dashboard
+View the dashboard
 View products
 View categories
-Manage inventory operations
+Perform inventory operations
 Process sales
-Manage store settings
+Access store settings
 
-Administrative features such as user management and reports are restricted to administrators.
+Administrative features such as user management and sales reports are restricted to administrators.
 
+Security
+
+The application includes:
+
+JWT authentication
+HS256 algorithm restriction
+Password hashing
+Role-based authorization
+Active-user validation
+Authentication rate limiting
+API rate limiting
+Helmet security headers
+CORS configuration
+Request body size limits
+Protected administrative endpoints
+Transaction-based stock updates
+Insufficient-stock protection
+Environment-based secrets
+
+Sensitive environment files and the local SQLite database are excluded from version control.
+
+Database
+
+The application uses SQLite with Prisma ORM for local data storage.
+
+The local database file is intentionally excluded from Git.
+
+Prisma migrations are stored in:
+
+backend/prisma/migrations/
 Testing
 
-The system has been tested for:
+The application has been tested for:
 
 Authentication
 Invalid authentication tokens
@@ -350,7 +401,7 @@ npm run build
 npm run preview
 Project Status
 
-The core Mega Coat Paint & Chemical management system is complete and has passed the current functional and production-build verification.
+The core Mega Coat Paint & Chemical Management System is complete and has passed functional testing and production build verification.
 
 Author
 
