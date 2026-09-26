@@ -6,6 +6,8 @@ import express, {
 import cors from "cors";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 import authRoutes from "./routes/auth.routes.js";
 import categoryRoutes from "./routes/category.routes.js";
@@ -16,6 +18,13 @@ import saleRoutes from "./routes/sale.routes.js";
 import userRoutes from "./routes/user.routes.js";
 
 const app = express();
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const frontendDistPath = path.resolve(
+  __dirname,
+  "../../frontend/dist"
+);
 
 app.disable("x-powered-by");
 
@@ -64,10 +73,14 @@ app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/sales", saleRoutes);
 app.use("/api/users", userRoutes);
 
+app.use(express.static(frontendDistPath));
+
 app.get("/", (_req: Request, res: Response) => {
-  res.status(200).json({
-    message: "Paint Store Management System API"
-  });
+  res.sendFile(path.join(frontendDistPath, "index.html"));
+});
+
+app.get("/{*splat}", (_req: Request, res: Response) => {
+  res.sendFile(path.join(frontendDistPath, "index.html"));
 });
 
 app.use((_req: Request, res: Response): void => {
