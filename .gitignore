@@ -30,3 +30,6 @@ skills-lock.json
 
 # Generated Prisma Client
 backend/src/generated/
+
+# Local database backups
+backups/
